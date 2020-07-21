@@ -3,6 +3,13 @@ package com.example.rocketreserver
 import android.content.Context
 import android.os.Looper
 import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.api.Operation
+import com.apollographql.apollo.api.ResponseField
+import com.apollographql.apollo.cache.normalized.CacheKey
+import com.apollographql.apollo.cache.normalized.CacheKeyResolver
+import com.apollographql.apollo.cache.normalized.lru.EvictionPolicy
+import com.apollographql.apollo.cache.normalized.lru.LruNormalizedCacheFactory
+import com.apollographql.apollo.cache.normalized.sql.SqlNormalizedCacheFactory
 import com.apollographql.apollo.subscription.WebSocketSubscriptionTransport
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -23,9 +30,34 @@ fun apolloClient(context: Context): ApolloClient {
         .addInterceptor(AuthorizationInterceptor(context))
         .build()
 
+    val sqlNormalizedCacheFactory = SqlNormalizedCacheFactory(context, "apollo.db")
+    val resolver: CacheKeyResolver = object : CacheKeyResolver() {
+        override fun fromFieldRecordSet(
+            field: ResponseField,
+            recordSet: Map<String, Any>
+        ): CacheKey {
+            val id = recordSet["id"] as String?
+            return if (id != null) CacheKey.from(id) else CacheKey.NO_KEY
+        }
+
+        override fun fromFieldArguments(
+            field: ResponseField,
+            variables: Operation.Variables
+        ): CacheKey {
+            val id = field.resolveArgument("id", variables) as String?
+            return if (id != null) CacheKey.from(id) else CacheKey.NO_KEY
+        }
+    }
+
     instance = ApolloClient.builder()
         .serverUrl("https://apollo-fullstack-tutorial.herokuapp.com/graphql")
-        .subscriptionTransportFactory(WebSocketSubscriptionTransport.Factory("wss://apollo-fullstack-tutorial.herokuapp.com/graphql", okHttpClient))
+        .subscriptionTransportFactory(
+            WebSocketSubscriptionTransport.Factory(
+                "wss://apollo-fullstack-tutorial.herokuapp.com/graphql",
+                okHttpClient
+            )
+        )
+        .normalizedCache(sqlNormalizedCacheFactory, resolver)
         .okHttpClient(okHttpClient)
         .build()
 

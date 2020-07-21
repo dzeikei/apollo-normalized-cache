@@ -10,8 +10,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.apollographql.apollo.api.Input
+import com.apollographql.apollo.cache.normalized.NormalizedCache
 import com.apollographql.apollo.coroutines.toDeferred
 import com.apollographql.apollo.exception.ApolloException
+import com.apollographql.apollo.fetcher.ApolloResponseFetchers
 import com.example.rocketreserver.databinding.LaunchListFragmentBinding
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -48,7 +50,10 @@ class LaunchListFragment : Fragment() {
             var cursor: String? = null
             for (item in channel) {
                 val response = try {
-                    apolloClient(requireContext()).query(LaunchListQuery(cursor = Input.fromNullable(cursor))).toDeferred().await()
+                    apolloClient(requireContext())
+                        .query(LaunchListQuery(cursor = Input.fromNullable(cursor)))
+                        .responseFetcher(ApolloResponseFetchers.NETWORK_FIRST)
+                        .toDeferred().await()
                 } catch (e: ApolloException) {
                     Log.d("LaunchList", "Failure", e)
                     return@launchWhenResumed

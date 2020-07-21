@@ -9,6 +9,7 @@ query LaunchList($cursor: String) {
         name
         missionPatch(size: SMALL)
       }
+      isBooked
     }
   }
 }

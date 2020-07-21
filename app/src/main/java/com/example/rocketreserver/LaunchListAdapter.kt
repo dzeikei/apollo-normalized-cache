@@ -30,6 +30,7 @@ class LaunchListAdapter(val launches: List<LaunchListQuery.Launch>) :
         holder.binding.missionPatch.load(launch.mission?.missionPatch) {
             placeholder(R.drawable.ic_placeholder)
         }
+        holder.binding.bookText.text = if (launch.isBooked) "Booked" else ""
 
         if (position == launches.size - 1) {
             onEndOfListReached?.invoke()
